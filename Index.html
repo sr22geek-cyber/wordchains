@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Wordchains Prototype</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #1e293b;
+      --card: rgba(255,255,255,0.09);
+      --line: rgba(255,255,255,0.18);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #f59e0b;
+      --accent2: #fb7185;
+      --good: #22c55e;
+      --bad: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1d4ed8 0%, var(--bg1) 36%, #020617 100%);
+      color: var(--text);
+      overflow: hidden;
+      touch-action: none;
+    }
+    body {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+    .app {
+      width: min(100vw, 1180px);
+      min-height: 100dvh;
+      padding: env(safe-area-inset-top, 12px) 16px env(safe-area-inset-bottom, 12px);
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 12px;
+      position: relative;
+    }
+    .rotate-lock {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2,6,23,0.97);
+      padding: 28px;
+      text-align: center;
+    }
+    .rotate-lock-card {
+      max-width: 420px;
+      padding: 28px 24px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+    }
+    .rotate-icon { font-size: 3rem; margin-bottom: 14px; }
+    .rotate-title { font-size: 1.45rem; font-weight: 800; margin-bottom: 10px; }
+    .rotate-copy { color: var(--muted); line-height: 1.5; }
+    @media (orientation: portrait) {
+      .rotate-lock { display: flex; }
+      .app { visibility: hidden; }
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding-top: 4px;
+    }
+    .brand-wrap { min-width: 0; }
+    .brand {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 1000;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      line-height: 1;
+      filter: drop-shadow(0 8px 18px rgba(0,0,0,0.28));
+    }
+    .brand::before,
+    .brand::after {
+      content: "";
+      width: 14px;
+      height: 14px;
+      border: 3px solid rgba(255,255,255,0.9);
+      border-radius: 999px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.18);
+      opacity: 0.95;
+      flex: 0 0 auto;
+    }
+    .brand-text {
+      display: inline-block;
+      font-size: clamp(1.4rem, 3.8vw, 2.45rem);
+      background: linear-gradient(135deg, #fff7ed 0%, #f59e0b 30%, #fb7185 68%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.08);
+      position: relative;
+    }
+    .brand-text::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -6px;
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(245,158,11,0.2), rgba(245,158,11,0.95), rgba(251,113,133,0.95), rgba(147,197,253,0.2));
+      box-shadow: 0 0 18px rgba(245,158,11,0.38);
+    }
+    .brand-sub {
+      margin-top: 10px;
+      color: rgba(255,255,255,0.7);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .pill {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 800;
+      font-size: 1rem;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      white-space: nowrap;
+    }
+    .score-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+    .stat {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 80px;
+    }
+    .label {
+      color: var(--muted);
+      font-size: 0.84rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .value {
+      font-size: clamp(2rem, 3.2vw, 2.6rem);
+      font-weight: 900;
+      margin-top: 2px;
+    }
+    .play-area {
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+    .play-shell {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+    }
+    .word-stage {
+      min-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+    }
+    .word-wrap {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 8px;
+      overflow: hidden;
+    }
+    .word {
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: clamp(2px, 0.8vw, 12px);
+      font-size: clamp(2.3rem, 5vw, 5rem);
+      line-height: 1.05;
+      font-weight: 900;
+      text-align: center;
+      padding: 18px 8px 34px;
+      min-height: 98px;
+      white-space: nowrap;
+      transform-origin: center center;
+    }
+    .char {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 0;
+      margin: 0;
+    }
+    .cut-line {
+      position: absolute;
+      top: -8px;
+      width: 4px;
+      height: calc(100% + 16px);
+      border-radius: 99px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, rgba(147,197,253,0.08), rgba(245,158,11,1), rgba(251,113,133,0.95));
+      box-shadow: 0 0 14px rgba(245,158,11,0.7);
+      pointer-events: none;
+      animation: cutPop 0.18s ease-out;
+    }
+    @keyframes cutPop {
+      from { opacity: 0; height: 18px; }
+      to { opacity: 1; height: calc(100% + 16px); }
+    }
+    .swipe-hint {
+      text-align: center;
+      color: #e2e8f0;
+      font-size: 0.98rem;
+      font-weight: 700;
+      opacity: 0.95;
+      min-height: 1.4em;
+    }
+    .instructions {
+      padding: 14px 16px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.98rem;
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 18px;
+      padding: 16px 24px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+      max-width: 320px;
+    }
+    button:active { transform: scale(0.985); }
+    .primary {
+      background: linear-gradient(135deg, #f59e0b, #fb7185);
+      color: white;
+      box-shadow: 0 10px 20px rgba(251,113,133,0.3);
+    }
+    .secondary {
+      background: rgba(255,255,255,0.12);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+    .start-screen, .results {
+      position: absolute;
+      inset: 0;
+      background: rgba(2,6,23,0.88);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      text-align: center;
+      padding: 26px;
+      border-radius: 22px;
+      z-index: 5;
+    }
+    .start-screen.show, .results.show { display: flex; }
+    .start-copy {
+      max-width: 520px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 1rem;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 5rem;
+      font-weight: 900;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.1s linear;
+      text-shadow: 0 8px 22px rgba(0,0,0,0.28);
+    }
+    .overlay.show { opacity: 1; }
+    .good { color: var(--good); }
+    .bad { color: var(--bad); }
+    .results h2, .start-screen h2 {
+      margin: 0;
+      font-size: 2rem;
+    }
+    .big-score {
+      font-size: 1.15rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .big-score strong {
+      color: white;
+      font-size: 1.6rem;
+    }
+    .small-note {
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+    .footer-note {
+      text-align: center;
+      color: rgba(255,255,255,0.74);
+      font-size: 0.78rem;
+      padding: 0 4px 2px;
+      line-height: 1.35;
+    }
+    @media (max-width: 820px) {
+      .app { gap: 10px; }
+      .word-stage { min-height: 180px; }
+      .stat { min-height: 72px; }
+      .instructions { font-size: 0.93rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="rotate-lock">
+    <div class="rotate-lock-card">
+      <div class="rotate-icon">↺</div>
+      <div class="rotate-title">Landscape only</div>
+      <div class="rotate-copy">Rotate your iPhone sideways to play the prototype. The game is locked to landscape mode for this test build.</div>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="topbar">
+      <div class="brand-wrap">
+        <div class="brand"><span class="brand-text">WORDCHAINS</span></div>
+        <div class="brand-sub">Split each chain into three words</div>
+      </div>
+      <div class="pill" id="timer">1:00</div>
+    </div>
+
+    <div class="score-row">
+      <div class="card stat">
+        <div>
+          <div class="label">Correct</div>
+          <div class="value" id="correctCount">0</div>
+        </div>
+      </div>
+      <div class="card stat">
+        <div>
+          <div class="label">Incorrect</div>
+          <div class="value" id="incorrectCount">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card play-area" id="playArea">
+      <div class="play-shell">
+        <div class="swipe-hint" id="swipeHint">Make 2 vertical swipes per chain</div>
+
+        <div class="word-stage">
+          <div class="word-wrap">
+            <div class="word" id="wordDisplay"></div>
+          </div>
+          <div class="overlay" id="feedbackOverlay"></div>
+        </div>
+
+        <div class="footer-note">Prototype build for iPhone/web feedback. Best tested in Safari on iPhone in landscape orientation.</div>
+      </div>
+
+      <div class="start-screen show" id="startScreen">
+        <h2>Ready to play?</h2>
+        <div class="start-copy">You have one minute. Swipe up or down anywhere on the screen. When your finger lifts, the nearest split between letters is used.</div>
+        <div class="controls">
+          <button class="primary" id="startBtn">Start 1-Minute Game</button>
+        </div>
+      </div>
+
+      <div class="results" id="resultsScreen">
+        <h2>Time’s up</h2>
+        <div class="big-score">
+          <div><strong id="finalCorrect">0</strong> correct</div>
+          <div><strong id="finalIncorrect">0</strong> incorrect</div>
+        </div>
+        <div class="small-note" id="accuracyNote"></div>
+        <div class="controls">
+          <button class="primary" id="playAgainBtn">Play Again</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card instructions" id="instructions">The wordchain fills the screen width to make slicing easier. Make two vertical swipes for each chain. Start above, below, near, or far away — only the ending position matters.</div>
+  </div>
+
+  <script>
+    const rawChains = [
+      ["sun", "flower", "pot"],
+      ["rain", "bow", "fish"],
+      ["book", "worm", "hole"],
+      ["star", "fish", "bowl"],
+      ["moon", "light", "beam"],
+      ["snow", "ball", "fight"],
+      ["tree", "house", "cat"],
+      ["fire", "fly", "trap"],
+      ["sand", "castle", "road"],
+      ["milk", "shake", "shop"],
+      ["tea", "cup", "cake"],
+      ["blue", "berry", "pie"],
+      ["pan", "cake", "mix"],
+      ["drum", "stick", "man"],
+      ["time", "clock", "tower"],
+      ["note", "book", "case"],
+      ["base", "ball", "park"],
+      ["door", "bell", "ring"],
+      ["key", "board", "lamp"],
+      ["light", "house", "boat"],
+      ["farm", "house", "road"],
+      ["mail", "box", "car"],
+      ["wind", "mill", "farm"],
+      ["sea", "shell", "box"],
+      ["rock", "star", "ship"],
+      ["hill", "side", "walk"],
+      ["boat", "house", "plant"],
+      ["plane", "ticket", "desk"],
+      ["water", "fall", "pool"],
+      ["lady", "bug", "jar"],
+      ["jelly", "fish", "tank"],
+      ["pepper", "mint", "tea"],
+      ["apple", "tree", "frog"],
+      ["winter", "coat", "rack"],
+      ["summer", "camp", "song"],
+      ["river", "stone", "path"],
+      ["candle", "stick", "man"],
+      ["paper", "clip", "board"],
+      ["coffee", "bean", "bag"],
+      ["garden", "hose", "pipe"],
+      ["pocket", "watch", "dog"],
+      ["silver", "fish", "pond"],
+      ["orange", "juice", "bar"],
+      ["market", "place", "mat"],
+      ["window", "shade", "tree"],
+      ["straw", "berry", "jam"],
+      ["dragon", "fly", "net"],
+      ["dinner", "plate", "rack"],
+      ["rocket", "ship", "yard"],
+      ["harbor", "light", "house"],
+      ["music", "note", "pad"],
+      ["pencil", "case", "book"],
+      ["bottle", "cap", "gun"],
+      ["turtle", "neck", "sock"],
+      ["suit", "case", "file"],
+      ["north", "star", "trail"],
+      ["bread", "crumb", "trail"],
+      ["finger", "print", "kit"],
+      ["thunder", "storm", "cloud"],
+      ["picture", "frame", "shop"],
+      ["school", "house", "bell"],
+      ["vacuum", "cleaner", "bag"],
+      ["button", "down", "shirt"],
+      ["flower", "bed", "room"],
+      ["news", "paper", "boy"],
+      ["under", "water", "cave"],
+      ["outside", "line", "judge"],
+      ["inside", "out", "look"],
+      ["week", "night", "shift"],
+      ["sun", "screen", "door"],
+      ["brain", "storm", "plan"],
+      ["play", "ground", "ball"],
+      ["hand", "shake", "deal"],
+      ["cross", "walk", "sign"],
+      ["green", "house", "gas"],
+      ["flash", "light", "beam"],
+      ["basket", "ball", "court"]
+    ];
+
+    const state = {
+      duration: 60,
+      timeLeft: 60,
+      correct: 0,
+      incorrect: 0,
+      playing: false,
+      current: null,
+      currentText: "",
+      cuts: [],
+      cutPositions: [],
+      intervalId: null,
+      touchStart: null,
+      awaitingFeedback: false
+    };
+
+    const timerEl = document.getElementById('timer');
+    const correctEl = document.getElementById('correctCount');
+    const incorrectEl = document.getElementById('incorrectCount');
+    const wordDisplay = document.getElementById('wordDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const feedbackOverlay = document.getElementById('feedbackOverlay');
+    const resultsScreen = document.getElementById('resultsScreen');
+    const startScreen = document.getElementById('startScreen');
+    const finalCorrect = document.getElementById('finalCorrect');
+    const finalIncorrect = document.getElementById('finalIncorrect');
+    const accuracyNote = document.getElementById('accuracyNote');
+    const swipeHint = document.getElementById('swipeHint');
+    const playArea = document.getElementById('playArea');
+
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function fitWordToOneLine() {
+      wordDisplay.style.transform = 'scale(1)';
+      const wrap = wordDisplay.parentElement;
+      if (!wrap) return;
+      const availableWidth = Math.max(260, wrap.clientWidth - 8);
+      const actualWidth = wordDisplay.scrollWidth;
+      if (actualWidth > availableWidth && availableWidth > 0) {
+        const scale = Math.max(0.58, Math.min(1, availableWidth / actualWidth));
+        wordDisplay.style.transform = `scale(${scale})`;
+      }
+    }
+
+    function chainFitsOnOneLine(parts) {
+      const text = parts.join('');
+      const tester = document.createElement('div');
+      tester.style.position = 'absolute';
+      tester.style.visibility = 'hidden';
+      tester.style.pointerEvents = 'none';
+      tester.style.display = 'flex';
+      tester.style.justifyContent = 'space-between';
+      tester.style.gap = '8px';
+      tester.style.whiteSpace = 'nowrap';
+      tester.style.width = `${Math.max(320, window.innerWidth - 80)}px`;
+      tester.style.fontWeight = '900';
+      tester.style.fontSize = getComputedStyle(wordDisplay).fontSize || '64px';
+      tester.style.fontFamily = getComputedStyle(wordDisplay).fontFamily;
+      for (const ch of text) {
+        const span = document.createElement('span');
+        span.textContent = ch;
+        span.style.flex = '1 1 0';
+        span.style.textAlign = 'center';
+        tester.appendChild(span);
+      }
+      document.body.appendChild(tester);
+      const fits = tester.scrollWidth <= tester.clientWidth + 1;
+      tester.remove();
+      return fits;
+    }
+
+    const chains = rawChains.filter(chainFitsOnOneLine);
+    let deck = shuffle(chains);
+    let deckIndex = 0;
+
+    function nextChain() {
+      if (deckIndex >= deck.length) {
+        deck = shuffle(chains);
+        deckIndex = 0;
+      }
+      state.current = deck[deckIndex++];
+      state.currentText = state.current.join('');
+      state.cutPositions = [state.current[0].length, state.current[0].length + state.current[1].length];
+      state.cuts = [];
+      renderWord();
+      swipeHint.textContent = 'Make 2 vertical swipes per chain';
+    }
+
+    function renderWord() {
+      wordDisplay.innerHTML = '';
+      const text = state.currentText || 'WORDCHAINS';
+      for (let i = 0; i < text.length; i++) {
+        const span = document.createElement('span');
+        span.className = 'char';
+        span.textContent = text[i];
+        wordDisplay.appendChild(span);
+      }
+      fitWordToOneLine();
+      drawCutLines();
+    }
+
+    function drawCutLines() {
+      wordDisplay.querySelectorAll('.cut-line').forEach(el => el.remove());
+      const chars = wordDisplay.querySelectorAll('.char');
+      state.cuts.forEach(cut => {
+        const leftChar = chars[cut - 1];
+        const rightChar = chars[cut];
+        if (!leftChar || !rightChar) return;
+        const leftMid = leftChar.offsetLeft + leftChar.offsetWidth;
+        const rightMid = rightChar.offsetLeft;
+        const line = document.createElement('div');
+        line.className = 'cut-line';
+        line.style.left = `${(leftMid + rightMid) / 2}px`;
+        wordDisplay.appendChild(line);
+      });
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function updateStats() {
+      timerEl.textContent = formatTime(state.timeLeft);
+      correctEl.textContent = state.correct;
+      incorrectEl.textContent = state.incorrect;
+    }
+
+    function resetGame() {
+      clearInterval(state.intervalId);
+      state.timeLeft = state.duration;
+      state.correct = 0;
+      state.incorrect = 0;
+      state.playing = false;
+      state.awaitingFeedback = false;
+      feedbackOverlay.className = 'overlay';
+      resultsScreen.classList.remove('show');
+      startScreen.classList.add('show');
+      updateStats();
+      state.current = null;
+      state.currentText = '';
+      state.cuts = [];
+      state.cutPositions = [];
+      renderWord();
+      swipeHint.textContent = 'Make 2 vertical swipes per chain';
+    }
+
+    function startGame() {
+      clearInterval(state.intervalId);
+      state.timeLeft = state.duration;
+      state.correct = 0;
+      state.incorrect = 0;
+      state.playing = true;
+      state.awaitingFeedback = false;
+      resultsScreen.classList.remove('show');
+      startScreen.classList.remove('show');
+      feedbackOverlay.className = 'overlay';
+      updateStats();
+      nextChain();
+      state.intervalId = setInterval(() => {
+        state.timeLeft -= 1;
+        updateStats();
+        if (state.timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    function endGame() {
+      clearInterval(state.intervalId);
+      state.playing = false;
+      state.awaitingFeedback = false;
+      finalCorrect.textContent = state.correct;
+      finalIncorrect.textContent = state.incorrect;
+      const total = state.correct + state.incorrect;
+      const accuracy = total ? Math.round((state.correct / total) * 100) : 0;
+      accuracyNote.textContent = total ? `Accuracy: ${accuracy}% across ${total} chains.` : 'No chains completed this round.';
+      resultsScreen.classList.add('show');
+    }
+
+    function nearestCutFromX(clientX) {
+      const chars = [...wordDisplay.querySelectorAll('.char')];
+      if (chars.length < 2) return null;
+      const boundaries = [];
+      for (let i = 0; i < chars.length - 1; i++) {
+        const leftRect = chars[i].getBoundingClientRect();
+        const rightRect = chars[i + 1].getBoundingClientRect();
+        boundaries.push({ cut: i + 1, x: (leftRect.right + rightRect.left) / 2 });
+      }
+      boundaries.sort((a, b) => Math.abs(a.x - clientX) - Math.abs(b.x - clientX));
+      return boundaries[0]?.cut ?? null;
+    }
+
+    function registerSwipe(clientX) {
+      if (!state.playing || state.awaitingFeedback || !state.currentText) return;
+      const cut = nearestCutFromX(clientX);
+      if (!cut) return;
+      if (state.cuts.includes(cut)) {
+        swipeHint.textContent = 'That split is already marked — choose the other one';
+        return;
+      }
+      state.cuts.push(cut);
+      state.cuts.sort((a, b) => a - b);
+      drawCutLines();
+      swipeHint.textContent = state.cuts.length === 1 ? 'Nice. One more vertical swipe.' : 'Checking...';
+      if (state.cuts.length === 2) evaluateCuts();
+    }
+
+    function evaluateCuts() {
+      state.awaitingFeedback = true;
+      const isCorrect = state.cuts.length === 2 && state.cuts[0] === state.cutPositions[0] && state.cuts[1] === state.cutPositions[1];
+      if (isCorrect) {
+        state.correct += 1;
+        showFeedback('✓', 'good');
+      } else {
+        state.incorrect += 1;
+        showFeedback('✕', 'bad');
+      }
+      updateStats();
+      setTimeout(() => {
+        feedbackOverlay.className = 'overlay';
+        state.awaitingFeedback = false;
+        if (state.playing && state.timeLeft > 0) nextChain();
+      }, 1000);
+    }
+
+    function showFeedback(symbol, kind) {
+      feedbackOverlay.textContent = symbol;
+      feedbackOverlay.className = `overlay show ${kind}`;
+    }
+
+    function handleTouchStart(e) {
+      const touch = e.touches ? e.touches[0] : e;
+      state.touchStart = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+    }
+
+    function handleTouchEnd(e) {
+      if (!state.touchStart) return;
+      const touch = e.changedTouches ? e.changedTouches[0] : e;
+      const dx = touch.clientX - state.touchStart.x;
+      const dy = touch.clientY - state.touchStart.y;
+      const elapsed = Date.now() - state.touchStart.time;
+      const isVerticalSwipe = Math.abs(dy) > 30 && Math.abs(dy) > Math.abs(dx) * 0.55 && elapsed < 1200;
+      const x = touch.clientX;
+      state.touchStart = null;
+      if (isVerticalSwipe) registerSwipe(x);
+    }
+
+    playArea.addEventListener('touchstart', handleTouchStart, { passive: true });
+    playArea.addEventListener('touchend', handleTouchEnd, { passive: true });
+    playArea.addEventListener('mousedown', handleTouchStart);
+    playArea.addEventListener('mouseup', handleTouchEnd);
+
+    startBtn.addEventListener('click', startGame);
+    playAgainBtn.addEventListener('click', startGame);
+    window.addEventListener('resize', () => {
+      if (state.currentText) {
+        fitWordToOneLine();
+        drawCutLines();
+      } else {
+        renderWord();
+      }
+    });
+
+    updateStats();
+    renderWord();
+  </script>
+</body>
+</html>
