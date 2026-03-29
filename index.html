@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Wordchains">
+    <title>Wordchains</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background: #0d0d1f;
+            color: white;
+            font-family: 'Courier New', 'Courier', monospace;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        /* ── SCREENS ── */
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            inset: 0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 20px)
+                     env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 20px);
+        }
+        .screen.active { display: flex; }
+
+        /* ── START SCREEN ── */
+        #start-screen { gap: 28px; text-align: center; padding: 40px; }
+
+        .title {
+            font-size: clamp(2.8em, 11vw, 4.2em);
+            font-weight: bold;
+            color: #f5c842;
+            text-shadow: 0 0 40px rgba(245,200,66,0.5), 0 0 80px rgba(245,200,66,0.2);
+            letter-spacing: 8px;
+        }
+
+        .chain-icon { font-size: 2em; opacity: 0.5; letter-spacing: 12px; }
+
+        .subtitle {
+            color: #8888aa;
+            font-size: 0.95em;
+            line-height: 1.7;
+            max-width: 300px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .howto-box {
+            background: rgba(245,200,66,0.07);
+            border: 1px solid rgba(245,200,66,0.2);
+            border-radius: 16px;
+            padding: 18px 24px;
+            max-width: 320px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 0.88em;
+            color: #aaa;
+            line-height: 1.8;
+            text-align: left;
+        }
+        .howto-box b { color: #f5c842; }
+
+        .start-btn {
+            background: linear-gradient(135deg, #f5c842, #d4a520);
+            color: #0d0d1f;
+            border: none;
+            padding: 20px 64px;
+            font-size: 1.25em;
+            font-weight: bold;
+            border-radius: 60px;
+            cursor: pointer;
+            letter-spacing: 4px;
+            box-shadow: 0 6px 30px rgba(245,200,66,0.4);
+            -webkit-appearance: none;
+        }
+        .start-btn:active { transform: scale(0.96); }
+
+        .fullscreen-btn {
+            background: none;
+            border: 1px solid rgba(245,200,66,0.35);
+            color: #f5c842;
+            padding: 8px 22px;
+            font-size: 0.82em;
+            border-radius: 30px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            opacity: 0.7;
+            -webkit-appearance: none;
+        }
+        .fullscreen-btn:active { opacity: 1; transform: scale(0.96); }
+        :fullscreen .fullscreen-btn, :-webkit-full-screen .fullscreen-btn { display: none; }
+
+        /* ── TIME SELECTOR ── */
+        .time-selector {
+            display: flex;
+            gap: 0;
+            border-radius: 30px;
+            overflow: hidden;
+            border: 1px solid rgba(245,200,66,0.3);
+        }
+        .time-opt {
+            background: none;
+            border: none;
+            color: #7777aa;
+            padding: 9px 20px;
+            font-size: 0.85em;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            cursor: pointer;
+            letter-spacing: 1px;
+            border-right: 1px solid rgba(245,200,66,0.3);
+            -webkit-appearance: none;
+            transition: background 0.15s, color 0.15s;
+        }
+        .time-opt:last-child { border-right: none; }
+        .time-opt.selected {
+            background: rgba(245,200,66,0.18);
+            color: #f5c842;
+            font-weight: bold;
+        }
+        .time-opt:active { opacity: 0.7; }
+
+        /* ── INSTALL OVERLAY ── */
+        #install-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(0,0,0,0.82);
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
+        }
+        #install-overlay.show { display: flex; }
+
+        .install-card {
+            background: #1a1a35;
+            border: 1px solid rgba(245,200,66,0.3);
+            border-radius: 24px 24px 16px 16px;
+            padding: 28px 28px 24px;
+            width: min(360px, 92vw);
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            text-align: center;
+        }
+
+        .install-card h2 {
+            color: #f5c842;
+            font-size: 1.2em;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+        .install-card .install-sub {
+            color: #8888aa;
+            font-size: 0.82em;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .install-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 22px;
+            text-align: left;
+        }
+        .install-step {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .step-num {
+            background: rgba(245,200,66,0.15);
+            border: 1px solid rgba(245,200,66,0.4);
+            color: #f5c842;
+            font-weight: bold;
+            font-size: 0.85em;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .step-text {
+            color: #ccccdd;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        .step-text strong { color: white; }
+        .step-icon {
+            display: inline-block;
+            background: #007aff;
+            color: white;
+            border-radius: 7px;
+            padding: 1px 5px;
+            font-size: 1em;
+            vertical-align: middle;
+            margin: 0 2px;
+        }
+
+        .install-arrow {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2em;
+            color: #f5c842;
+            animation: bounce 1s ease-in-out infinite;
+        }
+        @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
+
+        .install-dismiss {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #7777aa;
+            padding: 10px 32px;
+            border-radius: 30px;
+            font-size: 0.85em;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+
+        /* ── GAME SCREEN ── */
+        #game-screen { position: relative; }
+
+        .game-header {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: max(env(safe-area-inset-top, 0px), 16px) 28px 0;
+        }
+
+        #timer {
+            font-size: 2.4em;
+            font-weight: bold;
+            color: #f5c842;
+            letter-spacing: 2px;
+            min-width: 90px;
+        }
+        #timer.urgent {
+            color: #ff4455;
+            animation: blink 0.6s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        .live-score {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            padding-top: 6px;
+            font-size: 1.05em;
+        }
+        .live-score .correct { color: #44dd88; }
+        .live-score .wrong   { color: #ff4455; }
+
+        /* ── CHAIN DISPLAY ── */
+        .chain-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .swipe-hint {
+            color: #555577;
+            font-size: 0.8em;
+            letter-spacing: 3px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        #chain-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        #chain-text {
+            font-size: clamp(1.8em, 7.5vw, 2.8em);
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: #ffffff;
+            white-space: nowrap;
+            text-shadow: 0 2px 12px rgba(255,255,255,0.15);
+            padding: 12px 16px;
+            border-bottom: 3px solid rgba(255,255,255,0.12);
+            transition: opacity 0.15s;
+        }
+
+        .cut-line {
+            position: absolute;
+            top: -4px;
+            bottom: -10px;
+            width: 3px;
+            transform: translateX(-50%);
+            background: linear-gradient(to bottom, transparent 0%, #f5c842 20%, #f5c842 80%, transparent 100%);
+            box-shadow: 0 0 10px 2px rgba(245,200,66,0.6);
+            pointer-events: none;
+            border-radius: 2px;
+            animation: cutAppear 0.15s ease-out;
+        }
+        @keyframes cutAppear { from { opacity:0; transform:translateX(-50%) scaleY(0.3); } to { opacity:1; transform:translateX(-50%) scaleY(1); } }
+
+        .cuts-remaining {
+            color: #555577;
+            font-size: 0.85em;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            letter-spacing: 1px;
+            min-height: 1.2em;
+        }
+
+        /* ── SWORD SLASH ── */
+        .sword-slash {
+            position: fixed;
+            width: 3px;
+            border-radius: 2px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.9) 30%, rgba(255,255,255,0.9) 70%, transparent);
+            box-shadow: 0 0 14px 4px rgba(255,255,255,0.5);
+            pointer-events: none;
+            z-index: 50;
+            transform: translateX(-50%);
+            animation: slashFade 0.4s ease-out forwards;
+        }
+        @keyframes slashFade { 0%{opacity:1} 60%{opacity:0.8} 100%{opacity:0} }
+
+        /* ── FEEDBACK ── */
+        #feedback {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.12s;
+        }
+        #feedback .fb-symbol {
+            font-size: 7em;
+            line-height: 1;
+            animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1) forwards;
+        }
+        @keyframes popIn { from{transform:scale(0.3)} to{transform:scale(1)} }
+        #feedback.correct-fb { background: rgba(0,200,80,0.18); }
+        #feedback.wrong-fb   { background: rgba(255,60,70,0.18); }
+        #feedback.show { opacity: 1; }
+
+        /* ── SCORE SCREEN ── */
+        #score-screen { gap: 32px; text-align: center; padding: 40px; }
+
+        .score-title {
+            font-size: 2.4em;
+            color: #f5c842;
+            letter-spacing: 6px;
+            font-weight: bold;
+        }
+
+        .score-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 32px 48px;
+            min-width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 32px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .score-row .s-label { color: #7777aa; font-size: 1em; }
+        .score-row .s-val {
+            font-size: 2.4em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        .s-val.green { color: #44dd88; }
+        .s-val.red   { color: #ff4455; }
+
+        .divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); }
+
+        .accuracy-line {
+            color: #f5c842;
+            font-size: 1.2em;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            text-align: center;
+        }
+
+        .play-again-btn {
+            background: linear-gradient(135deg, #f5c842, #d4a520);
+            color: #0d0d1f;
+            border: none;
+            padding: 18px 56px;
+            font-size: 1.15em;
+            font-weight: bold;
+            border-radius: 60px;
+            cursor: pointer;
+            letter-spacing: 3px;
+            box-shadow: 0 6px 30px rgba(245,200,66,0.4);
+            -webkit-appearance: none;
+        }
+        .play-again-btn:active { transform: scale(0.96); }
+
+        /* ── LANDSCAPE OVERRIDES ── */
+        @media (orientation: landscape) {
+
+            /* Screens: safe area now on left/right sides */
+            .screen {
+                padding:
+                    max(env(safe-area-inset-top, 0px), 8px)
+                    max(env(safe-area-inset-right, 0px), 24px)
+                    max(env(safe-area-inset-bottom, 0px), 8px)
+                    max(env(safe-area-inset-left, 0px), 24px);
+            }
+
+            /* Start screen – compress vertically */
+            #start-screen { gap: 10px; padding: 10px 40px; }
+            .title { font-size: clamp(1.6em, 5vw, 2.2em); letter-spacing: 4px; }
+            .chain-icon { display: none; }
+            .howto-box  { font-size: 0.78em; padding: 10px 16px; line-height: 1.5; }
+            .start-btn  { padding: 12px 48px; font-size: 1.05em; margin-top: 0; }
+            .time-opt   { padding: 7px 16px; font-size: 0.78em; }
+
+            /* Game header – tighter top padding, account for side safe areas */
+            .game-header {
+                padding-top:   max(env(safe-area-inset-top, 0px), 6px);
+                padding-left:  max(env(safe-area-inset-left, 0px), 20px);
+                padding-right: max(env(safe-area-inset-right, 0px), 20px);
+            }
+            #timer       { font-size: 1.8em; }
+            .live-score  { font-size: 0.88em; gap: 2px; }
+
+            /* Chain – use vh so text scales with the shorter landscape height */
+            .chain-stage  { gap: 10px; }
+            .swipe-hint   { font-size: 0.72em; }
+            #chain-text   {
+                font-size: clamp(1.4em, 6vh, 2.4em);
+                letter-spacing: 0.5ch;
+                padding: 8px 12px;
+            }
+            .cuts-remaining { font-size: 0.78em; }
+
+            /* Feedback symbol smaller in short viewport */
+            #feedback .fb-symbol { font-size: 5em; }
+
+            /* Score screen – row layout for the card to save vertical space */
+            #score-screen  { gap: 14px; padding: 14px 40px; }
+            .score-title   { font-size: 1.8em; letter-spacing: 4px; }
+            .score-card {
+                flex-direction: row;
+                align-items: center;
+                justify-content: center;
+                padding: 14px 32px;
+                gap: 28px;
+            }
+            .score-row .s-val { font-size: 2em; }
+            /* Turn the <hr> divider vertical */
+            .divider {
+                width: 1px;
+                height: 40px;
+                border-top: none;
+                border-left: 1px solid rgba(255,255,255,0.08);
+            }
+            /* Accuracy sits below the row pair */
+            .accuracy-line { width: 100%; font-size: 0.95em; margin-top: 4px; }
+            .play-again-btn { padding: 12px 40px; font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══ START SCREEN ═══════════════════════════════════════════════════════ -->
+<div class="screen active" id="start-screen">
+    <div class="title">WORDCHAINS</div>
+    <div class="chain-icon">⛓&nbsp;&nbsp;⛓&nbsp;&nbsp;⛓</div>
+    <div class="howto-box">
+        <b>How to play:</b><br>
+        Three words are fused into one chain.<br>
+        <b>Swipe</b> like a sword to slash the chain at each word boundary.<br>
+        Two correct slashes = <b style="color:#44dd88">✓</b><br>
+        Choose your time below. How many can you chain?
+    </div>
+    <div class="time-selector" id="time-selector">
+        <button class="time-opt selected" data-secs="30">30 sec</button>
+        <button class="time-opt" data-secs="60">1 min</button>
+        <button class="time-opt" data-secs="180">3 min</button>
+    </div>
+    <button class="start-btn" id="start-btn">PLAY</button>
+    <button class="fullscreen-btn" id="fullscreen-btn">⛶ FULL SCREEN</button>
+</div>
+
+<!-- ═══ IOS INSTALL OVERLAY ════════════════════════════════════════════════ -->
+<div id="install-overlay">
+    <div class="install-card">
+        <h2>PLAY FULL SCREEN</h2>
+        <div class="install-sub">Add Wordchains to your Home Screen for the best experience — no browser bar, true full screen.</div>
+        <div class="install-steps">
+            <div class="install-step">
+                <div class="step-num">1</div>
+                <div class="step-text">Tap the <span class="step-icon">⎙</span> <strong>Share</strong> button at the bottom of Safari</div>
+            </div>
+            <div class="install-step">
+                <div class="step-num">2</div>
+                <div class="step-text">Scroll down and tap <strong>Add to Home Screen</strong></div>
+            </div>
+            <div class="install-step">
+                <div class="step-num">3</div>
+                <div class="step-text">Tap <strong>Add</strong> — then open Wordchains from your Home Screen</div>
+            </div>
+        </div>
+        <button class="install-dismiss" id="install-dismiss">Maybe later</button>
+    </div>
+    <div class="install-arrow">▼</div>
+</div>
+
+<!-- ═══ GAME SCREEN ════════════════════════════════════════════════════════ -->
+<div class="screen" id="game-screen">
+    <div class="game-header">
+        <div id="timer">0:30</div>
+        <div class="live-score">
+            <span class="correct">✓&nbsp;<span id="correct-count">0</span></span>
+            <span class="wrong">✗&nbsp;<span id="wrong-count">0</span></span>
+        </div>
+    </div>
+
+    <div class="chain-stage">
+        <div class="swipe-hint">SWIPE TO SLASH</div>
+        <div id="chain-wrapper">
+            <span id="chain-text"></span>
+        </div>
+        <div class="cuts-remaining" id="cuts-remaining"></div>
+    </div>
+</div>
+
+<!-- ═══ FEEDBACK ══════════════════════════════════════════════════════════ -->
+<div id="feedback">
+    <span class="fb-symbol" id="fb-symbol"></span>
+</div>
+
+<!-- ═══ SCORE SCREEN ══════════════════════════════════════════════════════ -->
+<div class="screen" id="score-screen">
+    <div class="score-title">TIME'S UP!</div>
+    <div class="score-card">
+        <div class="score-row">
+            <span class="s-label">Correct</span>
+            <span class="s-val green" id="final-correct">0</span>
+        </div>
+        <div class="score-row">
+            <span class="s-label">Wrong</span>
+            <span class="s-val red" id="final-wrong">0</span>
+        </div>
+        <hr class="divider">
+        <div class="accuracy-line" id="final-accuracy"></div>
+    </div>
+    <button class="play-again-btn" id="play-again-btn">PLAY AGAIN</button>
+</div>
+
+<script>
+// ═══ WORD LIST ═══════════════════════════════════════════════════════════════
+const RAW_WORDS = [
+    // 3-letter
+    'ant','ape','arc','arm','art','ash','axe','age','ace','aid','aim','air',
+    'bag','ban','bar','bat','bay','bed','bet','big','bit','bow','box','bud','bug','bun','bus','but',
+    'cab','can','cap','car','cat','cob','cod','cot','cub','cup','cut',
+    'dam','den','dew','dig','dim','dip','dot','dub','due','dug','dye',
+    'ear','eat','egg','elm','end','eye',
+    'fan','far','fat','fed','few','fig','fin','fit','fix','fly','fog','fox','fun','fur',
+    'gap','gel','gem','get','gin','god','got','gum','gun','gut','guy',
+    'ham','hat','hay','hen','hip','hit','hog','hop','hot','hub','hug','hum','hut',
+    'jam','jar','jaw','jet','jig','job','joy','jug',
+    'keg','kit',
+    'lad','lag','law','lay','leg','let','lid','lip','log','lot','low',
+    'mad','map','mat','met','mob','mom','mop','mud','mug','mum',
+    'nag','nap','net','nip','nod','not','nun','nut',
+    'oak','oar','odd','oil','old','orb','ore','out','owe','own',
+    'pad','pal','pan','par','pat','paw','pay','peg','pen','pet','pig','pit','pod','pot','pub','pun','pup','put',
+    'rag','ram','ran','ray','red','rid','rig','rim','rip','rob','rod','rot','row','rub','rug','rum','run','rut','rye',
+    'sad','sap','sat','saw','say','set','sew','sip','sit','sky','sob','sod','son','sow','sub','sum','sun',
+    'tab','tan','tap','tar','tea','ten','tin','tip','toe','ton','top','tow','toy','tub','tug',
+    'van','vat','vow',
+    'wag','war','wax','web','wed','wee','wet','wig','win','wit','woe',
+    'yak','yam','yew',
+    'zap','zoo',
+    // 4-letter
+    'able','acid','also','area','army','away',
+    'back','ball','band','bank','base','bath','bear','beat','belt','best','bird','bite','blow','blue','boat','body','bone','book','bore','born','both','buck','bull','burn','busy',
+    'cake','call','calm','came','card','care','cash','cast','cave','city','claw','clay','clip','club','coal','coat','coil','coin','cold','come','cook','cord','core','corn','cost','crab','crew','crop','crow','curl','cute',
+    'damp','dark','dawn','dear','deep','deny','desk','dial','dirt','dish','disk','dock','dome','done','door','dose','dove','down','drag','draw','drip','drop','drum','duck','dull','dump','dusk','dust',
+    'each','earn','ease','east','easy','edge','even','ever','evil',
+    'face','fact','fail','fair','fall','fame','fast','fate','fear','feed','feel','feet','fell','felt','file','fill','film','find','fine','fire','firm','fish','fist','flag','flat','flee','flip','flow','foam','fold','fond','food','fool','foot','ford','fork','form','fort','foul','free','frog','from','fuel','full','fund',
+    'gain','gale','game','gang','gave','gaze','gear','gift','give','glad','glow','goal','goat','gold','golf','gone','good','gore','gown','grab','gray','grew','grin','grip','gust',
+    'hack','hail','hall','halt','hand','hang','hard','harm','harp','hash','hate','have','hawk','heap','heat','heel','held','helm','help','herd','hide','high','hill','hint','hire','hold','hole','holy','home','hone','hook','hope','horn','host','huge','hull','hunt','hurt',
+    'iron',
+    'jade','jail','jerk','jest','join','joke','jolt','jump','just',
+    'keen','keep','kill','kind','king','knee','knew','knot','know',
+    'lace','lack','laid','lake','lame','lamp','land','lane','lard','lash','last','lead','leaf','lean','left','lend','life','lift','like','lime','limp','line','link','lion','list','live','load','lock','loft','lone','long','look','lore','lose','loss','loud','love','luck','lure','lust',
+    'made','mail','main','make','male','mane','many','mark','mast','mate','meal','mean','meat','melt','mice','mild','mile','milk','mill','mind','mine','mint','mist','moat','mode','mold','mole','moon','more','moss','most','moth','move','much','mule','must',
+    'nail','name','navy','near','neck','need','news','next','nice','nine','none','noon','norm','nose','note',
+    'oath','once','only','open','oven','over',
+    'pace','pack','page','paid','pain','pair','pale','palm','park','part','pass','past','path','pave','peak','peel','perk','pick','pile','pine','pink','pipe','plan','play','plod','plot','plow','plug','pond','pool','poor','pore','port','pose','post','pour','prey','prod','prop','pull','pure','push',
+    'rack','rage','raid','rail','rain','rake','ramp','rang','rank','rare','rash','rate','rave','read','real','reap','rear','reel','rein','rely','rent','rest','rice','rich','ride','ring','riot','ripe','rise','risk','road','roam','roar','robe','rock','role','roll','roof','room','root','rope','rose','rout','rude','rule','rush','rust',
+    'safe','sage','sail','sake','sale','salt','same','sand','sang','seal','seed','seek','self','send','ship','shoe','shop','shot','show','shut','sick','side','sigh','silk','sing','sink','site','size','skin','skip','slab','slap','slim','slip','slow','slug','snap','snip','snow','soak','soar','sock','soil','sold','sole','some','song','sore','sort','soul','soup','sour','span','spin','spit','spot','spur','stem','step','stir','stop','stub','stun','such','suit','surf','swap','sway','swim',
+    'tail','tale','talk','tall','tame','task','tear','tell','tent','term','test','than','them','then','thin','till','tilt','time','tint','tiny','tire','toad','toil','told','toll','tomb','tone','tore','torn','toss','tour','town','tray','trek','trim','trip','trot','true','tuck','tune','turf','tusk','twin','type',
+    'ugly','upon','used',
+    'vane','vary','vast','veil','vein','vest','veto','view','void','vote',
+    'wade','wage','wail','wake','walk','wall','want','ward','warm','warn','wash','wave','weak','wear','weed','week','weep','well','went','west','wide','wife','wild','will','wilt','wind','wine','wing','wink','wire','wise','wish','wolf','wood','wool','word','wore','work','worm','wrap',
+    'yard','yarn','year','yell',
+    'zeal','zone','zoom',
+    // 5-letter
+    'above','about','abuse','after','again','agent','agree','ahead','alarm','album',
+    'alert','alien','align','alley','allow','alone','along','alter','angel','anger',
+    'angle','angry','ankle','annex','annoy','apple','apply','apron','arch',
+    'arena','argue','arise','arrow','aside','atlas','atoms','attic','audio',
+    'badly','baker','basic','basis','beach','began','begin','being','below',
+    'bench','bible','black','blade','blame','bland','blank','blaze','bleed','blend',
+    'bless','blind','block','blood','bloom','blown','blunt','board','bonus','boost',
+    'booth','bound','brain','brand','brave','break','breed','brick','bride','brief',
+    'brisk','broad','broke','brook','brown','brush','build','built','bunch','burst',
+    'buyer','bylaw',
+    'cabin','cameo','candy','carry','catch','cause','chalk','chaos','charm','chase',
+    'cheap','check','cheek','cheer','chess','chief','chill','choir','chord','civil',
+    'claim','class','clean','clear','clerk','click','cliff','climb','cling','close',
+    'cloth','cloud','coach','coast','coded','comet','comic','comma','count','court',
+    'cover','crack','craft','crash','crazy','cream','creek','crime','cross','crust',
+    'curse','curve','cycle',
+    'daily','dance','datum','debut','decay','decoy','delay','delta','depth','derby',
+    'devil','disco','dizzy','dodge','doing','donor','doubt','dough','draft','drain',
+    'drama','drink','drive','drove','drown','druid','drunk','dryer',
+    'eagle','early','earth','ebony','eight','elect','elite','empty','enjoy','enter',
+    'entry','epoch','equip','essay','event','exact','extra',
+    'fable','faith','falls','false','fancy','fault','feast','fence','fever','fewer',
+    'fiber','field','fifth','fifty','fight','final','first','fixed','flame','flash',
+    'flats','flint','flood','floor','flown','fluke','flush','flute','focal','focus',
+    'foggy','folio','force','forge','found','franc','frank','fraud','fresh','front',
+    'frost','froze','fruit','fully','funny','fuzzy',
+    'gamma','ghost','giant','given','gland','glare','gloom','gloss','glove','going',
+    'grace','grade','grain','grand','grant','grape','grasp','grass','grave','graze',
+    'greed','green','greet','grief','grill','groan','groom','gross','group','grove',
+    'grown','guard','guess','guide','guile','guilt','guise','gulch','gusto',
+    'habit','hamper','handy','happy','harsh','haste','haunt','haven','heavy','hedge',
+    'hence','herbs','hinge','hobby','honey','honor','horse','hotel','hound','human',
+    'humid','humor','hurry','hyper',
+    'ideal','image','imply','inbox','india','infer','inner','input','inter','intro',
+    'issue',
+    'jewel','juice','juicy',
+    'knack','knife','knock',
+    'label','large','laser','later','laugh','layer','learn','lease','least','legal',
+    'lemon','level','light','limit','linen','liner','liver','local','lodge','logic',
+    'loose','lower','loyal','lucky','lunar',
+    'magic','major','manor','march','match','mayor','media','merge','merit','mercy',
+    'merry','metal','minor','minus','mixed','money','moral','motor','mouse','mouth',
+    'movie','mural','music',
+    'naive','nerve','never','night','noise','north','novel','nudge','nurse',
+    'occur','offer','olive','onset','opera','order','other','ought','outer','owned',
+    'owner',
+    'panel','panic','paper','patio','peace','pearl','pedal','penny','perky','phase',
+    'phone','photo','piano','piece','pilot','pitch','pixel','pixie','place','plain',
+    'plane','plant','plaza','plead','plumb','plume','plunk','plush','point','poise',
+    'polar','poppy','pouch','pound','power','press','price','pride','prime','print',
+    'prior','prize','probe','prone','proof','prose','proud','prove','prowl','pulse',
+    'purse','query','quest','queue','quick','quiet','quota','quote',
+    'radar','radio','rally','ranch','range','rapid','reach','ready','realm','rebel',
+    'reign','relax','repay','repel','reply','rider','ridge','right','rigid','risky',
+    'rival','river','rivet','robin','rodeo','rouge','rough','round','route','royal',
+    'rugby','ruler','runny',
+    'sadly','saint','sauce','sauce','scale','scare','scene','scone','scope','score',
+    'scout','seize','sense','serve','seven','shade','shaft','shake','shall','shame',
+    'shape','share','shark','sharp','sheen','sheet','shelf','shell','shift','shirt',
+    'shock','shoot','shore','short','sight','sigma','since','sixth','skill','skull',
+    'slate','slave','sleep','slice','slide','slope','small','smart','smell','smile',
+    'smoke','snake','solar','solid','solve','sorry','south','space','spare','spark',
+    'speak','spell','spend','spire','spite','split','spoke','spook','spoon','spore',
+    'sport','spray','squad','stack','staff','stage','stain','stair','stake','stale',
+    'stall','stand','stank','stark','stars','start','state','stays','stead','steel',
+    'steep','steer','stern','stick','stiff','still','sting','stock','stoic','stone',
+    'stood','store','storm','story','stout','stove','study','stuff','stunt','style',
+    'sugar','sunny','super','surge','swamp','swear','sweet','swept','swift','sword',
+    'swore','swung',
+    'table','taken','taste','tatty','teach','tense','thick','threw','throw','thumb',
+    'tidal','tight','toast','today','token','torch','total','touch','tough','toxic',
+    'trace','track','trade','trail','train','trait','tramp','trash','treat','trend',
+    'trial','tribe','trick','tried','troop','troth','trove','truck','truly','trump',
+    'trust','truth','tulip','tumor','tying',
+    'ultra','under','unify','union','unite','unity','until','upper','upset','urban',
+    'usage','usual',
+    'valid','value','valve','video','vigil','viral','vista','vital','vivid',
+    'waltz','waste','watch','water','weary','weird','which','while','whole','whose',
+    'wider','witty','woman','women','world','worry','worse','worst','worth','would',
+    'wrath','wreck','wrist','wrote',
+    'xenon','yacht',
+    'zebra',
+];
+
+const WORD_LIST = [...new Set(RAW_WORDS)].filter(w => w.length >= 3 && w.length <= 6);
+
+// ═══ GAME STATE ═══════════════════════════════════════════════════════════════
+let selectedDuration = 30; // seconds, updated by time selector
+
+let state = {
+    active: false,
+    timeLeft: 30,
+    correct: 0,
+    wrong: 0,
+    chain: null,    // { text, words, split1, split2 }
+    cuts: [],       // array of character-index positions where user cut
+    timer: null,
+    locked: false,  // true during feedback animation
+};
+
+// ═══ DOM REFS ═════════════════════════════════════════════════════════════════
+const $startScreen  = document.getElementById('start-screen');
+const $gameScreen   = document.getElementById('game-screen');
+const $scoreScreen  = document.getElementById('score-screen');
+const $timer        = document.getElementById('timer');
+const $correctCount = document.getElementById('correct-count');
+const $wrongCount   = document.getElementById('wrong-count');
+const $chainWrapper = document.getElementById('chain-wrapper');
+const $chainText    = document.getElementById('chain-text');
+const $cutsLeft     = document.getElementById('cuts-remaining');
+const $feedback     = document.getElementById('feedback');
+const $fbSymbol     = document.getElementById('fb-symbol');
+const $finalCorrect = document.getElementById('final-correct');
+const $finalWrong   = document.getElementById('final-wrong');
+const $finalAccuracy= document.getElementById('final-accuracy');
+
+// ═══ HELPERS ══════════════════════════════════════════════════════════════════
+function showScreen(el) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+}
+
+function randWord() {
+    return WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+}
+
+function generateChain() {
+    // Ensure no two consecutive words are identical and total length is manageable
+    let w1, w2, w3;
+    let attempts = 0;
+    do {
+        w1 = randWord();
+        w2 = randWord();
+        w3 = randWord();
+        attempts++;
+    } while (
+        attempts < 20 && (
+            w1 === w2 || w2 === w3 ||
+            (w1 + w2 + w3).length > 16 ||
+            (w1 + w2 + w3).length < 7
+        )
+    );
+    return {
+        text: w1 + w2 + w3,
+        words: [w1, w2, w3],
+        split1: w1.length,
+        split2: w1.length + w2.length,
+    };
+}
+
+// ═══ TIMER ════════════════════════════════════════════════════════════════════
+function updateTimerDisplay() {
+    const m = Math.floor(state.timeLeft / 60);
+    const s = state.timeLeft % 60;
+    $timer.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    $timer.classList.toggle('urgent', state.timeLeft <= 15);
+}
+
+// ═══ GAME FLOW ════════════════════════════════════════════════════════════════
+function startGame() {
+    state = {
+        active: true,
+        timeLeft: selectedDuration,
+        correct: 0,
+        wrong: 0,
+        chain: null,
+        cuts: [],
+        timer: null,
+        locked: false,
+    };
+    $correctCount.textContent = '0';
+    $wrongCount.textContent = '0';
+    $timer.classList.remove('urgent');
+    updateTimerDisplay();
+    showScreen($gameScreen);
+
+    state.timer = setInterval(() => {
+        state.timeLeft--;
+        updateTimerDisplay();
+        if (state.timeLeft <= 0) endGame();
+    }, 1000);
+
+    nextChain();
+}
+
+function nextChain() {
+    // Remove old cut lines
+    $chainWrapper.querySelectorAll('.cut-line').forEach(el => el.remove());
+    state.cuts = [];
+    state.locked = false;
+    state.chain = generateChain();
+    $chainText.textContent = state.chain.text;
+    $cutsLeft.textContent = '2 cuts remaining';
+    $chainText.style.opacity = '0';
+    requestAnimationFrame(() => {
+        $chainText.style.transition = 'opacity 0.2s';
+        $chainText.style.opacity = '1';
+    });
+}
+
+function recordCut(charIndex) {
+    if (!state.active || state.locked || !state.chain) return;
+    if (state.cuts.length >= 2) return;
+
+    const total = state.chain.text.length;
+    // Clamp so cuts can't be at very edges
+    const pos = Math.max(1, Math.min(total - 1, charIndex));
+
+    // Reject if too close to an existing cut
+    if (state.cuts.some(c => Math.abs(c - pos) < 2)) return;
+
+    state.cuts.push(pos);
+
+    // Draw cut line
+    const pct = pos / total;
+    const wrapRect = $chainWrapper.getBoundingClientRect();
+    const textRect = $chainText.getBoundingClientRect();
+    const cutX = textRect.left - wrapRect.left + pct * textRect.width;
+    const line = document.createElement('div');
+    line.className = 'cut-line';
+    line.style.left = cutX + 'px';
+    $chainWrapper.appendChild(line);
+
+    const remaining = 2 - state.cuts.length;
+    $cutsLeft.textContent = remaining === 0 ? '' : `${remaining} cut${remaining>1?'s':''} remaining`;
+
+    if (state.cuts.length === 2) {
+        state.locked = true;
+        setTimeout(evaluateCuts, 350);
+    }
+}
+
+function evaluateCuts() {
+    if (!state.chain) return;
+    const [c1, c2] = [...state.cuts].sort((a, b) => a - b);
+    const { split1, split2 } = state.chain;
+    // Tolerance = 0: Math.round already maps the pixel hit to the nearest gap,
+    // so the swipe must land within ±W/2 (half a character slot) of the correct boundary.
+    const ok = c1 === split1 && c2 === split2;
+
+    if (ok) {
+        state.correct++;
+        $correctCount.textContent = state.correct;
+    } else {
+        state.wrong++;
+        $wrongCount.textContent = state.wrong;
+    }
+
+    showFeedback(ok);
+}
+
+function showFeedback(ok) {
+    $feedback.className = ok ? 'correct-fb show' : 'wrong-fb show';
+    $fbSymbol.textContent = ok ? '✓' : '✗';
+    $fbSymbol.style.color = ok ? '#44dd88' : '#ff4455';
+    // Re-trigger animation
+    $fbSymbol.style.animation = 'none';
+    void $fbSymbol.offsetWidth;
+    $fbSymbol.style.animation = 'popIn 0.2s cubic-bezier(0.34,1.56,0.64,1) forwards';
+
+    setTimeout(() => {
+        $feedback.classList.remove('show');
+        setTimeout(() => {
+            $feedback.className = '';
+            if (state.active) nextChain();
+        }, 150);
+    }, 900);
+}
+
+function endGame() {
+    state.active = false;
+    clearInterval(state.timer);
+
+    const total = state.correct + state.wrong;
+    $finalCorrect.textContent = state.correct;
+    $finalWrong.textContent = state.wrong;
+    if (total === 0) {
+        $finalAccuracy.textContent = 'No chains attempted';
+    } else {
+        const pct = Math.round((state.correct / total) * 100);
+        $finalAccuracy.textContent = `${pct}% accuracy`;
+    }
+    showScreen($scoreScreen);
+}
+
+// ═══ TOUCH / SWIPE DETECTION ══════════════════════════════════════════════════
+let touchOrigin = null;
+
+function onPointerDown(x, y) {
+    if (!state.active || state.locked) return;
+    touchOrigin = { x, y };
+}
+
+function onPointerUp(x, y) {
+    if (!state.active || state.locked || !touchOrigin) return;
+    const dx = x - touchOrigin.x;
+    const dy = y - touchOrigin.y;  // negative = upward
+    const ox = touchOrigin.x;
+    const oy = touchOrigin.y;
+    touchOrigin = null;
+
+    // Must be a predominantly vertical swipe (up or down)
+    if (Math.abs(dy) < 30) return;
+    if (Math.abs(dx) > Math.abs(dy) * 1.5) return;
+
+    // Show sword slash
+    showSlash(ox, oy, y);
+
+    // Map swipe x to character position
+    const textRect = $chainText.getBoundingClientRect();
+    if (!state.chain) return;
+    const relX = ox - textRect.left;
+    const charPos = Math.round((relX / textRect.width) * state.chain.text.length);
+    recordCut(charPos);
+}
+
+function showSlash(x, startY, endY) {
+    const slash = document.createElement('div');
+    slash.className = 'sword-slash';
+    const top = Math.min(startY, endY) - 20;
+    const height = Math.max(Math.abs(endY - startY) + 40, 80);
+    slash.style.cssText = `left:${x}px; top:${top}px; height:${height}px;`;
+    document.body.appendChild(slash);
+    slash.addEventListener('animationend', () => slash.remove());
+}
+
+// Touch
+$gameScreen.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    onPointerDown(t.clientX, t.clientY);
+}, { passive: true });
+
+$gameScreen.addEventListener('touchend', e => {
+    const t = e.changedTouches[0];
+    onPointerUp(t.clientX, t.clientY);
+}, { passive: true });
+
+// Mouse (desktop testing)
+$gameScreen.addEventListener('mousedown', e => onPointerDown(e.clientX, e.clientY));
+$gameScreen.addEventListener('mouseup',   e => onPointerUp(e.clientX, e.clientY));
+
+// ═══ BUTTONS ══════════════════════════════════════════════════════════════════
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('play-again-btn').addEventListener('click', startGame);
+
+document.getElementById('time-selector').addEventListener('click', e => {
+    const btn = e.target.closest('.time-opt');
+    if (!btn) return;
+    document.querySelectorAll('.time-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedDuration = parseInt(btn.dataset.secs, 10);
+});
+
+// ═══ FULLSCREEN / INSTALL PROMPT ═════════════════════════════════════════════
+const $fsBtn          = document.getElementById('fullscreen-btn');
+const $installOverlay = document.getElementById('install-overlay');
+const $installDismiss = document.getElementById('install-dismiss');
+
+const isIOS        = /iP(hone|ad|od)/.test(navigator.userAgent);
+const isStandalone = navigator.standalone === true;
+const canFullscreen = !!(document.documentElement.requestFullscreen ||
+                         document.documentElement.webkitRequestFullscreen);
+
+const INSTALL_KEY = 'wc_install_dismissed';
+
+function showInstallOverlay() {
+    $installOverlay.classList.add('show');
+}
+
+function dismissInstall() {
+    $installOverlay.classList.remove('show');
+    localStorage.setItem(INSTALL_KEY, '1');
+}
+
+$installDismiss.addEventListener('click', dismissInstall);
+// Tapping the backdrop also dismisses
+$installOverlay.addEventListener('click', e => {
+    if (e.target === $installOverlay) dismissInstall();
+});
+
+if (isIOS && !isStandalone) {
+    $fsBtn.style.display = 'none';
+    // Show on first visit (or if never dismissed)
+    if (!localStorage.getItem(INSTALL_KEY)) {
+        // Short delay so the start screen renders first
+        setTimeout(showInstallOverlay, 600);
+    }
+} else if (isIOS && isStandalone) {
+    $fsBtn.style.display = 'none';
+} else if (canFullscreen) {
+    $fsBtn.addEventListener('click', () => {
+        const el = document.documentElement;
+        if (el.requestFullscreen)            el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    });
+    function onFSChange() {
+        const inFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        $fsBtn.style.display = inFS ? 'none' : '';
+    }
+    document.addEventListener('fullscreenchange', onFSChange);
+    document.addEventListener('webkitfullscreenchange', onFSChange);
+} else {
+    $fsBtn.style.display = 'none';
+}
+</script>
+</body>
+</html>
